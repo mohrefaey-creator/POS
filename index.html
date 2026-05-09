@@ -35,6 +35,11 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
+/* Render the whole app at 80% as the new "100%" baseline so every component
+   fits on a standard-density screen without the user having to Ctrl+− manually.
+   `zoom` is the right tool here (not transform: scale) because it shrinks the
+   layout box too, so scrollbars and click targets stay correct. */
+html { zoom: 0.8; }
 
 body {
   font-family: var(--body);
