@@ -491,7 +491,11 @@ tr.voided td:last-child { text-decoration: none; }
    off-canvas drawer behind a hamburger, and tables collapse to vertically
    stacked rows where each cell becomes a label/value pair. */
 @media (max-width: 768px) {
-  body { overflow-x: hidden; }
+  /* Free the document from a fixed viewport height so it can grow with the
+     content and the page itself scrolls vertically (instead of being trapped
+     inside a 100vh shell with internal-scrolling .main). */
+  html, body { height: auto; min-height: 100%; }
+  body { overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
   /* Top bar: hamburger + page title. ~52px tall, sticky to the top. */
   .mobile-topbar {
@@ -548,7 +552,9 @@ tr.voided td:last-child { text-decoration: none; }
   .lock-btn { width: 100%; padding: 8px 12px; font-size: 13px; }
   .lock-btn span { display: inline; }
 
-  .main { height: auto; }
+  /* Let the body scroll, not .main — otherwise sticky topbar + nested
+     scrolling fight each other and pages feel "stuck" at one screenful. */
+  .main { height: auto; overflow: visible; }
   .page { padding: 14px 12px; max-width: 100%; }
   .page-header {
     flex-direction: column; align-items: stretch; gap: 10px;
@@ -622,15 +628,18 @@ tr.voided td:last-child { text-decoration: none; }
   .modal-footer { padding: 12px 16px; flex-wrap: wrap; }
   .modal-footer .btn { flex: 1 1 auto; justify-content: center; }
 
-  /* POS: stack products on top, cart below. */
+  /* POS: stack products on top, cart below. Both sized to their content so
+     the page scrolls naturally — no internal scroll, no fixed viewport
+     heights that lock content out of view. */
   .pos-layout {
-    grid-template-columns: 1fr; grid-template-rows: 1fr auto;
-    height: auto; min-height: calc(100dvh - 60px); padding: 12px; gap: 12px;
+    grid-template-columns: 1fr; grid-template-rows: auto auto;
+    height: auto; min-height: 0; padding: 12px; gap: 12px;
   }
-  .pos-products { min-height: 280px; }
-  .product-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .pos-products { min-height: 0; min-width: 0; }
+  .product-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; overflow: visible; }
   .product-tile { padding: 10px 10px; min-height: 76px; }
-  .cart-panel { max-height: 60dvh; }
+  .cart-panel { max-height: none; overflow: visible; }
+  .cart-items { max-height: none; overflow: visible; }
   .cart-actions { grid-template-columns: 1fr 1fr; }
   .cart-actions .btn-pay { grid-column: 1 / -1; padding: 12px; font-size: 14px; }
 
