@@ -482,34 +482,71 @@ tr.voided td:last-child { text-decoration: none; }
 .variance-pill.short { background: #fee2e2; color: var(--bad); }
 .variance-pill.over  { background: #fef3c7; color: var(--warn); }
 
+/* Mobile-only chrome elements. Hidden on desktop. */
+.mobile-topbar { display: none; }
+.nav-backdrop { display: none; }
+
 /* MOBILE — phones and small tablets up to 768px wide.
-   The desktop layout assumes a 220px sidebar + 380px cart panel; both have to
-   collapse on a phone. We turn the sidebar into a top strip with horizontally
-   scrolling nav, stack the POS columns, single-column the forms, and let wide
-   tables scroll horizontally inside their cards. */
+   Strategy: don't scroll horizontally for any reason. The sidebar becomes an
+   off-canvas drawer behind a hamburger, and tables collapse to vertically
+   stacked rows where each cell becomes a label/value pair. */
 @media (max-width: 768px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: 100dvh; }
-  .sidebar {
-    flex-direction: row; align-items: center; gap: 8px;
-    padding: 6px 10px; border-right: none; border-bottom: 1px solid #1e3a5f;
-    overflow: hidden;
+  body { overflow-x: hidden; }
+
+  /* Top bar: hamburger + page title. ~52px tall, sticky to the top. */
+  .mobile-topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 50; height: 52px;
   }
-  .brand { padding: 0; border-bottom: none; flex-shrink: 0; }
-  .brand-logo { max-height: 42px; margin: 0; }
-  .nav { padding: 0; flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-  .nav::-webkit-scrollbar { display: none; }
-  .nav .nav-section { display: none; }
-  .nav-list, .nav { display: flex; gap: 4px; flex-direction: row; flex-wrap: nowrap; white-space: nowrap; }
-  /* Override the desktop `width: 100%` so each pill sizes to its content
-     instead of every item filling the whole strip (which made it look like
-     only the first nav item — POS — existed on mobile). */
-  .nav-item { width: auto; padding: 7px 10px; font-size: 12px; flex: 0 0 auto; }
-  /* Keep the lock button visible on mobile, but drop the shop/cashier labels
-     (the page header already shows enough context). */
-  .shop-meta { display: flex; align-items: center; padding: 0; border-top: none; flex-shrink: 0; }
-  .shop-meta .label, .shop-meta .val { display: none; }
-  .lock-btn { flex-shrink: 0; padding: 6px 10px; font-size: 12px; }
-  .lock-btn span { display: none; }
+  .hamburger {
+    width: 40px; height: 40px; border-radius: 8px;
+    background: transparent; font-size: 22px;
+    color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line);
+  }
+  .hamburger:active { background: var(--bg-2); }
+  .mobile-title {
+    font-family: var(--display); font-weight: 600; font-size: 16px;
+    flex: 1; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* Backdrop behind the open drawer. Tap to close. */
+  .nav-backdrop {
+    display: block;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 90;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  body.nav-open .nav-backdrop { opacity: 1; pointer-events: auto; }
+
+  /* App grid collapses to single column; sidebar leaves the flow entirely
+     and becomes a fixed off-canvas drawer. */
+  .app { grid-template-columns: 1fr; height: auto; }
+  .sidebar {
+    position: fixed; top: 0; left: -280px; bottom: 0;
+    width: 280px; z-index: 100;
+    transition: left 0.25s ease;
+    border-right: 1px solid #1e3a5f; border-bottom: none;
+  }
+  body.nav-open .sidebar { left: 0; box-shadow: 4px 0 24px rgba(0,0,0,0.4); }
+  /* Inside the drawer, restore the desktop vertical sidebar styling
+     so the brand logo and full nav with sections look right. */
+  .brand { padding: 0 22px 0; }
+  .brand-logo { max-height: 168px; margin: -16px 0 -8px -28px; }
+  .nav, .nav-list { display: flex; flex-direction: column; flex-wrap: nowrap; white-space: normal; }
+  .nav-item { width: 100%; padding: 9px 12px; font-size: 13px; flex: 0 0 auto; }
+  .nav-section { display: block; margin: 8px 0 4px; padding: 0 10px; }
+  .shop-meta { display: block; padding: 16px 22px; border-top: 1px solid #1e3a5f; }
+  .shop-meta .label, .shop-meta .val { display: block; }
+  .lock-btn { width: 100%; padding: 8px 12px; font-size: 13px; }
+  .lock-btn span { display: inline; }
 
   .main { height: auto; }
   .page { padding: 14px 12px; max-width: 100%; }
@@ -521,10 +558,56 @@ tr.voided td:last-child { text-decoration: none; }
   .page-actions { flex-wrap: wrap; }
   .page-actions .input { flex: 1 1 140px; min-width: 0; }
 
-  /* Wide tables: horizontal scroll inside the card so the page itself doesn't
-     scroll sideways. */
-  .card { padding: 12px; overflow-x: auto; }
-  table.tbl { min-width: 640px; }
+  /* Tables: ditch the table layout entirely on mobile. Each row becomes a
+     bordered card with each cell on its own row showing "Label: value". A
+     MutationObserver in JS auto-fills `data-label` from the matching <th>. */
+  .card { padding: 10px; overflow-x: visible; }
+  table.tbl, table.tbl tbody { display: block; width: 100%; }
+  table.tbl thead { display: none; }
+  table.tbl tr {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    background: var(--paper);
+    padding: 10px 12px;
+  }
+  table.tbl tr:last-child { margin-bottom: 0; }
+  table.tbl td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    border: none;
+    text-align: end;
+    min-width: 0;
+  }
+  table.tbl td::before {
+    content: attr(data-label);
+    font-size: 11px; font-weight: 600;
+    color: var(--ink-3);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    text-align: start;
+    flex-shrink: 0;
+  }
+  table.tbl td:empty { display: none; }
+  /* Empty/spacer cells (no label, no content) shouldn't render an empty pill. */
+  table.tbl td:not([data-label]):not(.empty-row) { display: none; }
+  /* Empty-state row spans full width */
+  table.tbl tr td.empty-row {
+    display: block;
+    text-align: center;
+    color: var(--ink-3);
+    padding: 16px 0;
+  }
+  table.tbl tr td.empty-row::before { content: none; }
+  /* Action buttons in the last cell — keep as a row of buttons */
+  table.tbl td.text-end { justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+  table.tbl td.text-end::before { content: ''; flex-shrink: 1; min-width: 0; }
+  table.tbl td.text-end .btn { flex: 0 0 auto; }
+  /* Numeric cells: keep numbers right-aligned but make them not stretch */
+  table.tbl td.num-cell { font-variant-numeric: tabular-nums; }
 
   /* Forms: collapse the 2-col grids inside modals to single column. */
   .form-grid, .form-grid.three { grid-template-columns: 1fr; gap: 10px; }
@@ -539,11 +622,10 @@ tr.voided td:last-child { text-decoration: none; }
   .modal-footer { padding: 12px 16px; flex-wrap: wrap; }
   .modal-footer .btn { flex: 1 1 auto; justify-content: center; }
 
-  /* POS: stack products on top, cart below. Cart gets a fixed-ish height so
-     it doesn't push the products off-screen. */
+  /* POS: stack products on top, cart below. */
   .pos-layout {
     grid-template-columns: 1fr; grid-template-rows: 1fr auto;
-    height: auto; min-height: calc(100dvh - 56px); padding: 12px; gap: 12px;
+    height: auto; min-height: calc(100dvh - 60px); padding: 12px; gap: 12px;
   }
   .pos-products { min-height: 280px; }
   .product-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
@@ -555,7 +637,7 @@ tr.voided td:last-child { text-decoration: none; }
   /* Recipe / purchase row layouts shrink to fit. */
   .recipe-row { grid-template-columns: 1.4fr 1fr 70px 28px; gap: 6px; font-size: 12px; }
 
-  /* Stat cards: 2-up on phones rather than 4-up. */
+  /* Stat cards: 2-up on phones. */
   .stat-row { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 14px; }
   .stat { padding: 12px 14px; }
   .stat .num { font-size: 20px; }
@@ -592,6 +674,11 @@ tr.voided td:last-child { text-decoration: none; }
 </style>
 </head>
 <body>
+<header class="mobile-topbar" id="mobile-topbar">
+  <button class="hamburger" id="hamburger" aria-label="Menu">☰</button>
+  <div class="mobile-title" id="mobile-title">Brewbook</div>
+</header>
+<div class="nav-backdrop" id="nav-backdrop"></div>
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
@@ -2122,6 +2209,7 @@ async function openReopenModal(shiftId) {
 async function navigate(page) {
   State.page = page;
   renderSidebar();
+  if (typeof syncMobileTitle === 'function') syncMobileTitle();
   await renderPage();
 }
 
@@ -4182,6 +4270,53 @@ async function openUserEditor(user) {
 }
 
 /* ============================================================
+   MOBILE CHROME — drawer toggle + auto-labelling table cells
+   ============================================================ */
+function setupMobileChrome() {
+  const ham = document.getElementById('hamburger');
+  const backdrop = document.getElementById('nav-backdrop');
+  const closeDrawer = () => document.body.classList.remove('nav-open');
+  if (ham) ham.onclick = () => document.body.classList.toggle('nav-open');
+  if (backdrop) backdrop.onclick = closeDrawer;
+  // Close the drawer once the user picks a page, so they see the new view.
+  document.addEventListener('click', (e) => {
+    const item = e.target.closest('.nav-item');
+    if (item) closeDrawer();
+  });
+
+  // Auto-fill `data-label` on every <td> from the matching <th>, so the mobile
+  // CSS that turns tables into vertical "Label: value" cards can show what
+  // each cell means. Runs after any DOM mutation in <main>.
+  const main = document.getElementById('main');
+  if (main && 'MutationObserver' in window) {
+    const labelTables = () => {
+      main.querySelectorAll('table.tbl').forEach(tbl => {
+        const headers = [...tbl.querySelectorAll('thead th')].map(th => th.textContent.trim());
+        tbl.querySelectorAll('tbody tr').forEach(row => {
+          const cells = row.children;
+          for (let i = 0; i < cells.length; i++) {
+            if (headers[i] && !cells[i].classList.contains('empty-row')) {
+              cells[i].setAttribute('data-label', headers[i]);
+            }
+          }
+        });
+      });
+    };
+    const obs = new MutationObserver(() => labelTables());
+    obs.observe(main, { childList: true, subtree: true });
+    labelTables();
+  }
+}
+
+// Update the topbar title to the active page name whenever navigation changes.
+function syncMobileTitle() {
+  const el = document.getElementById('mobile-title');
+  if (!el) return;
+  const item = NAV.find(n => n.id === State.page);
+  el.textContent = item ? t(item.label) : (State.settings?.shopName || 'Brewbook');
+}
+
+/* ============================================================
    BOOTSTRAP
    ============================================================ */
 async function boot() {
@@ -4191,6 +4326,7 @@ async function boot() {
     await migrateLegacyPins();
     await loadLockoutState();
     await reloadState();
+    setupMobileChrome();
     renderSidebar();
     await authAndShiftFlow();
     renderSidebar();
