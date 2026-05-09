@@ -38,8 +38,11 @@ html, body { height: 100%; }
 /* Render the whole app at 80% as the new "100%" baseline so every component
    fits on a standard-density screen without the user having to Ctrl+− manually.
    `zoom` is the right tool here (not transform: scale) because it shrinks the
-   layout box too, so scrollbars and click targets stay correct. */
-html { zoom: 0.8; }
+   layout box too, so scrollbars and click targets stay correct.
+   Disabled on mobile so text stays legible at native size. */
+@media (min-width: 900px) {
+  html { zoom: 0.8; }
+}
 
 body {
   font-family: var(--body);
@@ -478,6 +481,89 @@ tr.voided td:last-child { text-decoration: none; }
 .variance-pill.ok    { background: #dcfce7; color: var(--good); }
 .variance-pill.short { background: #fee2e2; color: var(--bad); }
 .variance-pill.over  { background: #fef3c7; color: var(--warn); }
+
+/* MOBILE — phones and small tablets up to 768px wide.
+   The desktop layout assumes a 220px sidebar + 380px cart panel; both have to
+   collapse on a phone. We turn the sidebar into a top strip with horizontally
+   scrolling nav, stack the POS columns, single-column the forms, and let wide
+   tables scroll horizontally inside their cards. */
+@media (max-width: 768px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: 100dvh; }
+  .sidebar {
+    flex-direction: row; align-items: center; gap: 8px;
+    padding: 6px 10px; border-right: none; border-bottom: 1px solid #1e3a5f;
+    overflow: hidden;
+  }
+  .brand { padding: 0; border-bottom: none; flex-shrink: 0; }
+  .brand-logo { max-height: 42px; margin: 0; }
+  .nav { padding: 0; flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+  .nav .nav-section { display: none; }
+  .nav-list, .nav { display: flex; gap: 4px; flex-direction: row; flex-wrap: nowrap; white-space: nowrap; }
+  .nav-item { padding: 7px 10px; font-size: 12px; flex: 0 0 auto; }
+  /* Keep the lock button visible on mobile, but drop the shop/cashier labels
+     (the page header already shows enough context). */
+  .shop-meta { display: flex; align-items: center; padding: 0; border-top: none; flex-shrink: 0; }
+  .shop-meta .label, .shop-meta .val { display: none; }
+  .lock-btn { flex-shrink: 0; padding: 6px 10px; font-size: 12px; }
+  .lock-btn span { display: none; }
+
+  .main { height: auto; }
+  .page { padding: 14px 12px; max-width: 100%; }
+  .page-header {
+    flex-direction: column; align-items: stretch; gap: 10px;
+    padding-bottom: 12px; margin-bottom: 14px;
+  }
+  .page-title { font-size: 22px; }
+  .page-actions { flex-wrap: wrap; }
+  .page-actions .input { flex: 1 1 140px; min-width: 0; }
+
+  /* Wide tables: horizontal scroll inside the card so the page itself doesn't
+     scroll sideways. */
+  .card { padding: 12px; overflow-x: auto; }
+  table.tbl { min-width: 640px; }
+
+  /* Forms: collapse the 2-col grids inside modals to single column. */
+  .form-grid, .form-grid.three { grid-template-columns: 1fr; gap: 10px; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+
+  /* Modals: full-width on phones, less padding. */
+  .modal-overlay { padding: 8px; }
+  .modal, .modal.lg { max-width: 100%; max-height: calc(100dvh - 16px); }
+  .modal-header { padding: 14px 16px; }
+  .modal-header h3 { font-size: 17px; }
+  .modal-body { padding: 16px; }
+  .modal-footer { padding: 12px 16px; flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1 1 auto; justify-content: center; }
+
+  /* POS: stack products on top, cart below. Cart gets a fixed-ish height so
+     it doesn't push the products off-screen. */
+  .pos-layout {
+    grid-template-columns: 1fr; grid-template-rows: 1fr auto;
+    height: auto; min-height: calc(100dvh - 56px); padding: 12px; gap: 12px;
+  }
+  .pos-products { min-height: 280px; }
+  .product-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .product-tile { padding: 10px 10px; min-height: 76px; }
+  .cart-panel { max-height: 60dvh; }
+  .cart-actions { grid-template-columns: 1fr 1fr; }
+  .cart-actions .btn-pay { grid-column: 1 / -1; padding: 12px; font-size: 14px; }
+
+  /* Recipe / purchase row layouts shrink to fit. */
+  .recipe-row { grid-template-columns: 1.4fr 1fr 70px 28px; gap: 6px; font-size: 12px; }
+
+  /* Stat cards: 2-up on phones rather than 4-up. */
+  .stat-row { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .stat { padding: 12px 14px; }
+  .stat .num { font-size: 20px; }
+
+  /* Lock screen on small phones: tighten card padding and shrink the keypad
+     so the whole flow stays in the viewport without scrolling. */
+  .lock-card { min-width: 0 !important; width: 100%; max-width: 360px; padding: 18px; }
+  .lock-logo { max-height: 140px; }
+  .lock-shop { font-size: 18px; margin-bottom: 14px; }
+  .keypad { grid-template-columns: repeat(3, 60px); gap: 8px; }
+  .key { width: 60px; height: 60px; font-size: 18px; }
+}
 
 @media print {
   body * { visibility: hidden !important; }
